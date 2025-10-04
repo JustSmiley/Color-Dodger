@@ -1,346 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Color Dodger</title>
-<link rel="icon" href="assets/favicon.ico">
-<style>
-    body, html {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        background: #111;
-        font-family: sans-serif;
-        user-select: none;
-        height: 100%;
-        width: 100%;
-    }
-    #score {
-        position: absolute;
-        top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 32px;
-        color: #fff;
-        z-index: 2;
-    }
-    #colorUI {
-        position: absolute;
-        bottom: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        gap: 10px;
-        background: rgba(0,0,0,0.5);
-        padding: 10px 20px;
-        border-radius: 10px;
-        z-index: 2;
-        margin-bottom: 10px;
-    }
-    .colorBlock {
-        width: 40px;
-        height: 40px;
-        border: 3px solid #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: bold;
-        border-radius: 5px;
-        transition: filter 0.2s;
-    }
-    .active {
-        border: 3px solid #fff;
-        box-shadow: 0 0 10px #fff;
-    }
-    #cooldownBar {
-        position: absolute;
-        bottom: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 200px;
-        height: 10px;
-        background: rgba(255,255,255,0.2);
-        border-radius: 5px;
-        overflow: hidden;
-        z-index:2;
-    }
-    #cooldownFill {
-        width: 0%;
-        height: 100%;
-        background: #fff;
-        transition: width 0.05s linear;
-    }
-    #overlay {
-        position: absolute;
-        top:0;
-        left:0;
-        width:100%;
-        height:100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        color: #fff;
-        font-size: 32px;
-        text-align: center;
-        background: rgba(0,0,0,0.7);
-        z-index: 5;
-        display: none;
-        white-space: pre-line;
-    }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Dodger</title>
+    <link rel="icon" href="assets/favicon.ico">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5960013463258842" crossorigin="anonymous"></script>
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-0XZ97NH9TZ"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){ dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-0XZ97NH9TZ');
+    </script>
 </head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-0XZ97NH9TZ"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-0XZ97NH9TZ');
-</script>
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5960013463258842"crossorigin="anonymous"></script>
-
 <body>
-<div id="score">Score: 0</div>
-<canvas id="gameCanvas"></canvas>
-<div id="colorUI"></div>
-<div id="cooldownBar"><div id="cooldownFill"></div></div>
-<div id="overlay"></div>
+    <!-- Score (displays fake/transformed value only) -->
+    <div id="score">Score: 0</div>
 
-<audio id="bgMusic" src="assets/background_music.mp3" loop></audio>
-<audio id="lostSE" src="assets/game_lost_se.mp3"></audio>
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
 
-<script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+    <!-- Color Indicator / Power-up UI -->
+    <div id="colorUI"></div>
 
-function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-resizeCanvas();
+    <!-- Cooldown Bar -->
+    <div id="cooldownBar">
+        <div id="cooldownFill"></div>
+    </div>
 
-let colors = ['#e74c3c','#2ecc71','#3498db'];
-let colorNames = ['R','G','B'];
-let player = { x: canvas.width/4, y: canvas.height/2, size: 40, colorIndex: 0, speed: 4 };
-let obstacles = [];
-let spawnTimer = 0;
-let speed = 3;
-let secret = 0;      
-let gameOver = false;
-let paused = false;
-let rows = colors.length;
-let lastTime = performance.now();
-let keys = {};
-let topBottomTimer = 0; 
-const CAMP_LIMIT = 5000;
+    <!-- Overlay for messages or transitions -->
+    <div id="overlay"></div>
 
-let lastColorSwitch = 0;
-const COLOR_COOLDOWN = 250; 
-let deathTime = 0;
-const DEATH_COOLDOWN = 2000;
+    <!-- Audio -->
+    <audio id="bgMusic" src="assets/background_music.mp3" loop></audio>
+    <audio id="lostSE" src="assets/game_lost_se.mp3"></audio>
 
-const uiDiv = document.getElementById('colorUI');
-const overlay = document.getElementById('overlay');
-const cooldownFill = document.getElementById('cooldownFill');
-
-const bgMusic = document.getElementById('bgMusic');
-const lostSE = document.getElementById('lostSE');
-bgMusic.volume = 0.5;
-
-function spawnObstacle() {
-    const isHigh = Math.random() < 0.15;
-    const width = 50;
-    const height = isHigh ? canvas.height*0.5 : 50;
-    const x = canvas.width + width;
-    const maxY = canvas.height - height - 100;
-    const y = Math.random()*maxY;
-    const colorIndex = Math.floor(Math.random() * rows);
-    obstacles.push({ x, y, width, height, colorIndex, speedMult: 1, text: '' });
-}
-
-function spawnBossObstacle(text) {
-    const height = 40;
-    const y = Math.max(0, Math.min(canvas.height - 100 - height, player.y));
-    const x = canvas.width + 50;
-    obstacles.push({ x, y, width: canvas.width, height, color: '#9b59b6', speedMult: 1.5, text: text });
-}
-
-function resetGame() {
-    obstacles = [];
-    player.colorIndex = 0;
-    player.y = canvas.height/2;
-    spawnTimer = 0;
-    speed = 3;
-    rows = 3;
-    colors = ['#e74c3c','#2ecc71','#3498db'];
-    colorNames = ['R','G','B'];
-    secret = 0;
-    gameOver = false;
-    paused = false;
-    overlay.style.display = 'none';
-    lastTime = performance.now();
-    topBottomTimer = 0;
-    lastColorSwitch = 0;
-    bgMusic.play().catch(()=>{});
-    updateUI();
-}
-
-function update(delta) {
-    if (gameOver || paused) return;
-
-    if (keys['W'] || keys['ArrowUp']) player.y -= player.speed;
-    if (keys['S'] || keys['ArrowDown']) player.y += player.speed;
-    player.y = Math.max(0, Math.min(canvas.height - 100 - player.size, player.y));
-
-    const now = performance.now();
-    if ((keys['A'] || keys['ArrowLeft']) && now - lastColorSwitch > COLOR_COOLDOWN) {
-        player.colorIndex = (player.colorIndex - 1 + rows) % rows; 
-        keys['A'] = keys['ArrowLeft'] = false; 
-        lastColorSwitch = now;
-    }
-    if ((keys['D'] || keys['ArrowRight']) && now - lastColorSwitch > COLOR_COOLDOWN) {
-        player.colorIndex = (player.colorIndex + 1) % rows; 
-        keys['D'] = keys['ArrowRight'] = false; 
-        lastColorSwitch = now;
-    }
-
-    if (player.y <= 0 || player.y >= canvas.height - 100 - player.size) {
-        topBottomTimer += delta;
-        if (topBottomTimer > CAMP_LIMIT) {
-            spawnBossObstacle("nice try noob");
-            topBottomTimer = 0;
-        }
-    } else topBottomTimer = 0;
-
-    spawnTimer++;
-    const spawnInterval = Math.max(15, 35 - Math.floor(secret / 20)); 
-    if (spawnTimer > spawnInterval) { 
-        spawnObstacle(); 
-        spawnTimer = 0; 
-    }
-
-    obstacles.forEach((obs, idx) => {
-        obs.x += (obs.speedMult || 1) * -speed;
-        if (player.x < obs.x + obs.width &&
-            player.x + player.size > obs.x &&
-            player.y < obs.y + obs.height &&
-            player.y + player.size > obs.y) {
-            if (player.colorIndex !== obs.colorIndex) {
-                gameOver = true;
-                paused = false;
-                deathTime = performance.now();
-                overlay.innerText = `You died!\nYour score was ${parseInt(secret)}!\nPress any key to play again.`;
-                overlay.style.display = 'flex';
-                bgMusic.pause();
-                lostSE.play();
-            }
-        }
-        if (obs.x + obs.width < 0) obstacles.splice(idx,1);
-    });
-
-    if (secret >=50 && rows===3){
-        colors.push('#f1c40f');
-        colorNames.push('Y');
-        rows = 4;
-    }
-
-    let growthBase = 1.05;
-    let growthCap = 4;
-    let growthRate = growthBase * (1 + Math.min(secret / 200, growthCap - 1));
-
-    secret += delta / 1000 * growthRate;
-}
-
-function drawPlayer() {
-    ctx.fillStyle = colors[player.colorIndex];
-    ctx.beginPath();
-    ctx.moveTo(player.x + player.size, player.y + player.size/2);
-    ctx.lineTo(player.x, player.y); 
-    ctx.lineTo(player.x, player.y + player.size); 
-    ctx.closePath();
-    ctx.fill();
-}
-
-function drawBorders() {
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(0,0); ctx.lineTo(canvas.width,0);
-    ctx.moveTo(0,canvas.height - 100); ctx.lineTo(canvas.width,canvas.height - 100);
-    ctx.stroke();
-}
-
-function draw() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    drawBorders();
-    drawPlayer();
-    obstacles.forEach(obs=>{
-        ctx.fillStyle = obs.color || colors[obs.colorIndex];
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-        if (obs.text) {
-            ctx.fillStyle = '#fff';
-            ctx.font = '20px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(obs.text, obs.x + obs.width/2, obs.y + obs.height/1.5);
-        }
-    });
-}
-
-function gameLoop(now) {
-    const delta = now - lastTime;
-    lastTime = now;
-    update(delta);
-    draw();
-    document.getElementById('score').innerText = 'Score: ' + Math.floor(secret) + (paused?' - Paused':'');
-    updateUI();
-    requestAnimationFrame(gameLoop);
-}
-
-document.addEventListener('keydown', e=>{
-    keys[e.code.replace('Key','')] = true;
-    const now = performance.now();
-    if (gameOver) {
-        if (now - deathTime > DEATH_COOLDOWN) resetGame();
-        return;
-    }
-    if (!gameOver && e.code==='Escape') {
-        paused = !paused;
-        if(paused){
-            overlay.innerText = "Game Paused\nPress any key to continue.";
-            overlay.style.display = 'flex';
-            bgMusic.pause();
-        } else {
-            overlay.style.display = 'none';
-            bgMusic.play().catch(()=>{});
-        }
-    } else if(paused){
-        paused = false;
-        overlay.style.display = 'none';
-        bgMusic.play().catch(()=>{});
-    }
-});
-
-document.addEventListener('keyup', e=>{ keys[e.code.replace('Key','')] = false; });
-
-function updateUI() {
-    uiDiv.innerHTML = '';
-    colors.forEach((c,i)=>{
-        const block = document.createElement('div');
-        block.className = 'colorBlock' + (i===player.colorIndex?' active':'');
-        block.style.backgroundColor = c;
-        block.innerText = colorNames[i];
-        uiDiv.appendChild(block);
-    });
-
-    const now = performance.now();
-    const cd = Math.min((now - lastColorSwitch) / COLOR_COOLDOWN, 1);
-    cooldownFill.style.width = (cd*100) + '%';
-}
-
-window.addEventListener('resize', resizeCanvas);
-setTimeout(() => { bgMusic.play().catch(() => {}); }, 200);
-gameLoop(performance.now());
-</script>
+    <!-- Main Script -->
+    <script src="script.js"></script>
 </body>
 </html>
