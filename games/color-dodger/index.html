@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Dodger</title>
+    <link rel="icon" href="assets/color-dodger/favicon.ico">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5960013463258842" crossorigin="anonymous"></script>
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-0XZ97NH9TZ"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){ dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-0XZ97NH9TZ');
+    </script>
+</head>
+<body>
+        <!-- Audio -->
+    <audio id="bgMusic" src="/assets/color-dodger/background_music.mp3" loop></audio>
+    <audio id="lostSE" src="/assets/color-dodger/game_lost.mp3"></audio>
+
+    <!-- Score (displays fake/transformed value only) -->
+    <div id="score">Score: 0</div>
+
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Color Indicator / Power-up UI -->
+    <div id="colorUI"></div>
+
+    <!-- Cooldown Bar -->
+    <div id="cooldownBar">
+        <div id="cooldownFill"></div>
+    </div>
+
+    <!-- Overlay for messages or transitions -->
+    <div id="overlay"></div>
+
+    <!-- Main Script -->
+    <script src="script.js"></script>
+</body>
+</html>

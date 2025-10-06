@@ -1,0 +1,5 @@
+[
+    ["up", "down", "right", "left"],
+    ["up", "down", "up", "right", "left"],
+    ["left", "right", "down", "up", "up", "down"]
+]
